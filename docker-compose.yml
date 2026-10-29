@@ -1,0 +1,25 @@
+# VibeLift — single-service Docker Compose configuration.
+# One container hosts Next.js (frontend + API routes) and the embedded SQLite DB.
+# The `vibelift-data` host folder is mounted to /data for persistent SQLite + photos.
+services:
+  vibelift:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vibelift:latest
+    container_name: vibelift
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "file:/data/vibelift.db"
+      PHOTO_STORAGE_PATH: "/data/photos"
+      LYFTA_API_KEY: "${LYFTA_API_KEY:-}"
+      LYFTA_BASE_URL: "${LYFTA_BASE_URL:-https://api.lyfta.com}"
+      AI_API_KEY: "${AI_API_KEY:-}"
+      AI_MODEL: "${AI_MODEL:-gpt-4o-mini}"
+      OPENCODE_BASE_URL: "${OPENCODE_BASE_URL:-http://localhost:8787}"
+      MAX_PHOTO_UPLOAD_BYTES: "${MAX_PHOTO_UPLOAD_BYTES:-10485760}"
+    volumes:
+      - ./vibelift-data:/data

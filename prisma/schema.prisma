@@ -1,0 +1,54 @@
+// Prisma schema for VibeLift.
+// Single-container deployment: file-based SQLite living under /data (mounted volume).
+// NOTE: SQLite does not support Prisma `enum` or `Json` types, so enumerated
+// values and structured payloads are stored as TEXT and validated with Zod at
+// the application boundary (see src/types and src/lib/validation.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Uploaded/coach photos stored on disk under PHOTO_STORAGE_PATH.
+// The database keeps the metadata; the binary lives on the mounted volume.
+model Photo {
+  id        String   @id @default(cuid())
+  fileName  String
+  filePath  String
+  mimeType  String
+  sizeBytes Int
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
+// Chat conversation messages between the user and the AI coach.
+// toolCalls stores the serialized OpenAI-style tool_calls payload as JSON text.
+model ChatMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String // "system" | "user" | "assistant" | "tool"
+  content        String
+  toolCalls      String? // JSON-serialized tool call list (assistant messages only)
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// Generic key/value cache used to persist AI/API results (e.g. cached body-weight
+// measurements or aggregated coaching data). value is JSON text.
+model CachedWeight {
+  id        String    @id @default(cuid())
+  key       String    @unique
+  value     String // JSON-serialized payload
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([key])
+}
